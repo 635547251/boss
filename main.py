@@ -23,7 +23,7 @@ async def get_cookies():
     with open("./cookies.json", "r") as f:
         obj = json.load(f)
         ct = datetime.strptime(obj["create_time"], "%Y-%m-%d %H:%M:%S.%f")
-    if datetime.now() - ct < timedelta(minutes=cookies_duration) and user == obj["cookies"].get("tracknick"):
+    if datetime.now() - ct < timedelta(minutes=cookies_duration) and user == obj["cookies"]["tracknick"]:
         return obj["cookies"]
     else:
         try:
