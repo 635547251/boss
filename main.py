@@ -6,6 +6,7 @@ import re
 import time
 from datetime import datetime, timedelta
 
+import execjs
 import js2py
 import requests
 from pyppeteer import launch
@@ -92,8 +93,7 @@ def main(cookies):
         token = cookies["_m_h5_tk"].split("_")[0]
         with open('./s.js') as f:
             js = f.read()
-            context = js2py.EvalJs()
-            context.execute(js)
+            context = execjs.compile(js)
         # 还剩30秒时，获取一些参数
         order_build_data = None
         while True:
@@ -103,7 +103,7 @@ def main(cookies):
                     source_time = str(int(round(time.time(), 3) * 1000))
                     data = '{"isPage":True,"extStatus":0,"netType":0,"exParams":"{\\"mergeCombo\\":\\"True\\",\\"version\\":\\"1.1.1\\",\\"globalSell\\":\\"1\\",\\"cartFrom\\":\\"taobao_client\\",\\"spm\\":\\"a2141.7756461.toolbar.i1\\",\\"dataformat\\":\\"dataformat_ultron_h5\\"}","cartFrom":"taobao_client","spm":"a2141.7756461.toolbar.i1","dataformat":"dataformat_ultron_h5","ttid":"h5"}'
                     req = s.get("https://h5api.m.taobao.com/h5/mtop.trade.query.bag/5.0/?jsv=2.5.6&appKey=12574478&t=%s&sign=%s&api=mtop.trade.query.bag&v=5.0&type=jsonp&ttid=h5&isSec=0&ecode=1&AntiFlood=True&AntiCreep=True&H5Request=True&dataType=jsonp&callback=mtopjsonp2&data=%s" %
-                                (source_time, context.s(token + "&" + source_time + "&12574478&" + data), data))
+                                (source_time, context.call("s", token + "&" + source_time + "&12574478&" + data), data))
                     query_bag_data = json.loads(
                         re.match(".*?({.*}).*", req.text, re.S).group(1))["data"]
 
@@ -112,7 +112,7 @@ def main(cookies):
                     data = '{"buyNow":"false","buyParam":"%s","spm":"a21202.12579950.settlement-bar.0","exParams":"{\\"tradeProtocolFeatures\\":\\"5\\",\\"userAgent\\":\\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36\\"}"}' % query_bag_data[
                         "data"]["item_" + cart_id]["fields"]["settlement"]
                     req = s.post("https://h5api.m.taobao.com/h5/mtop.trade.order.build.h5/4.0/?jsv=2.5.7&appKey=12574478&t=%s&sign=%s&api=mtop.trade.order.build.h5&v=4.0&type=originaljson&ttid=%s&isSec=1&ecode=1&AntiFlood=True&AntiCreep=True&H5Request=True&dataType=jsonp" %
-                                 (source_time, context.s(token + "&" + source_time + "&12574478&" + data), "%23t%23ip%23%23_h5_2019"), data={"data": data})
+                                 (source_time, context.call("s", token + "&" + source_time + "&12574478&" + data), "%23t%23ip%23%23_h5_2019"), data={"data": data})
                     order_build_data = req.json()["data"]
                     break
                 except Exception:
@@ -158,18 +158,20 @@ def main(cookies):
         data += '\\"linkage\\":\\"%s\\",\\"hierarchy\\":\\"{\\\\\\"structure\\\\\\":%s}\\",\\"endpoint\\":\\"%s\\"}"}' % (
             linkage_dict, hierarchy_structure_dict, endpoint_dict)
 
+        # 防止接口调用频繁，用js2py放慢时间
+        with open('./s.js') as f:
+            js = f.read()
+            context2 = js2py.EvalJs()
+            context2.execute(js)
+        source_time = str(int(round(time.time(), 3) * 1000))
+        sign = context2.s(token + "&" + source_time + "&12574478&" + data)
         while True:
             now = datetime.now()
             if now >= buy_time:
                 try:
-                    bt = time.time()
-                    source_time = str(int(round(time.time(), 3) * 1000))
-                    context.s(token + "&" + source_time + "&12574478&" + data)
-                    req = s.post("https://h5api.m.taobao.com/h5/mtop.trade.order.create.h5/4.0/?jsv=2.5.7&appKey=12574478&t=%s&sign=%s&v=4.0&post=1&type=originaljson&timeout=15000&dataType=json&isSec=1&ecode=1&api=mtop.trade.order.create.h5&ttid=%s&H5Request=True&submitref=%s" %
-                                 (source_time, context.s(token + "&" + source_time + "&12574478&" + data), "%23t%23ip%23%23_h5_2019", submitref), data={"data": data})
-                    print(req.text)
-                    print(time.time() - bt)
-                    time.sleep(2)
+                    req = s.post("https://h5api.m.taobao.com/h5/mtop.trade.order.create.h5/4.0/?jsv=2.5.7&appKey=12574478&t=%s&sign=%s&v=4.0&post=1&type=originaljson&timeout=15000&dataType=json&isSec=1&ecode=1&api=mtop.trade.order.create.h5&ttid=%s&H5Request=true&submitref=%s" %
+                                 (source_time, sign, "%23t%23ip%23%23_h5_2019", submitref), data={"data": data})
+                    print("抢单成功，请去支付")
                     break
                 except Exception:
                     raise
