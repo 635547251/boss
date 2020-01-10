@@ -7,7 +7,6 @@ import time
 from datetime import datetime, timedelta
 
 import execjs
-import js2py
 import requests
 from pyppeteer import launch
 
@@ -106,8 +105,8 @@ def main(cookies):
                                 (source_time, context.call("s", token + "&" + source_time + "&12574478&" + data), data))
                     query_bag_data = json.loads(
                         re.match(".*?({.*}).*", req.text, re.S).group(1))["data"]
-
-                    time.sleep(1)
+                    # 防止请求过快
+                    time.sleep(5)
                     source_time = str(int(round(time.time(), 3) * 1000))
                     data = '{"buyNow":"false","buyParam":"%s","spm":"a21202.12579950.settlement-bar.0","exParams":"{\\"tradeProtocolFeatures\\":\\"5\\",\\"userAgent\\":\\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36\\"}"}' % query_bag_data[
                         "data"]["item_" + cart_id]["fields"]["settlement"]
@@ -158,13 +157,8 @@ def main(cookies):
         data += '\\"linkage\\":\\"%s\\",\\"hierarchy\\":\\"{\\\\\\"structure\\\\\\":%s}\\",\\"endpoint\\":\\"%s\\"}"}' % (
             linkage_dict, hierarchy_structure_dict, endpoint_dict)
 
-        # 防止接口调用频繁，用js2py放慢时间
-        with open('./s.js') as f:
-            js = f.read()
-            context2 = js2py.EvalJs()
-            context2.execute(js)
-        source_time = str(int(round(time.time(), 3) * 1000))
-        sign = context2.s(token + "&" + source_time + "&12574478&" + data)
+        source_time = str(int(buy_time.timestamp()) * 1000)
+        sign = context.call("s", token + "&" + source_time + "&12574478&" + data)
         while True:
             now = datetime.now()
             if now >= buy_time:
