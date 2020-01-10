@@ -6,7 +6,7 @@ user = "###"
 pw = "###"
 
 # cookies持续时间(分钟)
-cookies_duration = 240
+cookies_duration = 0
 
 # 购物车id
-cart_id = "1756208569718"
+cart_id = "1755745296460"

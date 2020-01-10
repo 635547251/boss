@@ -158,7 +158,8 @@ def main(cookies):
             linkage_dict, hierarchy_structure_dict, endpoint_dict)
 
         source_time = str(int(buy_time.timestamp()) * 1000)
-        sign = context.call("s", token + "&" + source_time + "&12574478&" + data)
+        sign = context.call("s", token + "&" +
+                            source_time + "&12574478&" + data)
         while True:
             now = datetime.now()
             if now >= buy_time:
