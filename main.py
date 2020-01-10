@@ -18,7 +18,7 @@ buy_time = datetime.strptime(buy_time, "%Y-%m-%d %H:%M:%S.%f")
 s = requests.Session()
 
 
-# TODO cookies检测失效后再次获取，自动获取cart_id，多收货地址，多订单
+# TODO cookies检测失效后再次获取，自动获取cart_id
 async def get_cookies():
     with open("./cookies.json", "r") as f:
         obj = json.load(f)
@@ -97,7 +97,7 @@ def main(cookies):
         order_build_data = None
         while True:
             now = datetime.now()
-            if now - buy_time >= timedelta(seconds=30):
+            if buy_time - now <= timedelta(seconds=30):
                 try:
                     source_time = str(int(round(time.time(), 3) * 1000))
                     data = '{"isPage":True,"extStatus":0,"netType":0,"exParams":"{\\"mergeCombo\\":\\"True\\",\\"version\\":\\"1.1.1\\",\\"globalSell\\":\\"1\\",\\"cartFrom\\":\\"taobao_client\\",\\"spm\\":\\"a2141.7756461.toolbar.i1\\",\\"dataformat\\":\\"dataformat_ultron_h5\\"}","cartFrom":"taobao_client","spm":"a2141.7756461.toolbar.i1","dataformat":"dataformat_ultron_h5","ttid":"h5"}'
